@@ -12,6 +12,7 @@
             "email": "info@rd-media.org"
         }
     ],
+    "minimum-stability": "dev",
     "require": {},
     "autoload": {
         "psr-4": {
