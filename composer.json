@@ -1,7 +1,7 @@
 {
     "name": "rd-media/payments",
     "description": "Test Package for RD-Media Components",
-    "type": "package",
+    "type": "library",
     "require-dev": {
         "monolog/monolog": "^1.23"
     },
@@ -13,10 +13,6 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {},
-    "autoload": {
-        "psr-4": {
-            "RDPayment\\": "src/"
-        }
-    }
+	"version": "1.0.0",
+    "require": {}
 }
