@@ -1,0 +1,17 @@
+{
+    "name": "rd-media/payments",
+    "description": "Test Package for RD-Media Components",
+    "type": "library",
+    "require-dev": {
+        "monolog/monolog": "^1.23"
+    },
+    "license": "GPL",
+    "authors": [
+        {
+            "name": "Robert Dam",
+            "email": "info@rd-media.org"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
