@@ -1,4 +1,8 @@
 {
+	"name": "rdmedia/payments",
+	"description": "Payments Library from RD-Media",
+	"license": "MIT",
+	"type": "library",
     "require": {
     },
     "autoload": {
