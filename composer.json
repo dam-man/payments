@@ -12,11 +12,10 @@
             "email": "info@rd-media.org"
         }
     ],
-    "minimum-stability": "dev",
     "require": {},
     "autoload": {
         "psr-4": {
-            "rd-media\\RDPayment\\": "src/"
+            "RDPayment\\": "src/"
         }
     }
 }
