@@ -1,13 +1,9 @@
 {
-    "name": "rdmedia/payments",
-    "description": "Test Composer Package",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Robert",
-            "email": "info@rd-media.org"
+    "require": {
+    },
+    "autoload": {
+        "psr-4": {
+            "RDPayments\\": ["src/"]
         }
-    ],
-    "require": {}
+    }
 }
