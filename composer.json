@@ -3,6 +3,7 @@
 	"description": "Payments Library from RD-Media",
 	"license": "MIT",
 	"type": "library",
+	"minimum-stability": "dev",
     "require": {
     },
     "autoload": {
