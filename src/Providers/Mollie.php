@@ -7,6 +7,7 @@ namespace RDPayments\Providers;
 
 use Mollie_API_Client;
 use RDPayments\Api\PaymentInterface;
+use RDPayments\Log;
 use RDPayments\Payment;
 
 class Mollie extends Payment implements PaymentInterface
@@ -42,6 +43,24 @@ class Mollie extends Payment implements PaymentInterface
 	 * @since __DEPLOY_VERSION__
 	 */
 	protected $paymentRedirectUrl;
+	/**
+	 * @var Log
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	private $logger;
+	/**
+	 * @var string
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	private $logfile = 'mollie.log';
+	/**
+	 * @var
+	 *
+	 * @since __DEPLOY_VERSION__
+	 */
+	private $transactionDetails;
 
 	/**
 	 * Mollie constructor.
@@ -51,6 +70,7 @@ class Mollie extends Payment implements PaymentInterface
 	public function __construct()
 	{
 		$this->mollie = new Mollie_API_Client;
+		$this->logger = new Log;
 	}
 
 	/**
@@ -141,6 +161,8 @@ class Mollie extends Payment implements PaymentInterface
 		// Getting the payment URL.
 		$this->paymentRedirectUrl = $payment->getPaymentUrl();
 
+		$this->logger->write($this->logfile, 'Redirecting', ['url' => $this->paymentRedirectUrl]);
+
 		return $this;
 	}
 
@@ -175,6 +197,8 @@ class Mollie extends Payment implements PaymentInterface
 			$payment_object['method'] = $this->method;
 		}
 
+		$this->logger->write($this->logfile, 'Created Payment Object', $payment_object);
+
 		return $payment_object;
 	}
 
@@ -188,6 +212,79 @@ class Mollie extends Payment implements PaymentInterface
 	public function getPaymentRedirectUrl()
 	{
 		return $this->paymentRedirectUrl;
+	}
+
+	/**
+	 * Gettin gthe transaction details based on the transaction id from Mollie.
+	 *
+	 * @param $token
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return \Mollie_API_Object_Payment|null
+	 */
+	public function getTransactionDetails($token)
+	{
+		if(empty($token))
+		{
+			return null;
+		}
+
+		$this->mollie->setApiKey($this->apiKey);
+		$this->transactionDetails = $this->mollie->payments->get($token);
+
+		// Write transaction data to log file
+		$this->logger->write($this->logfile, 'IPN Processed', (array) $this->transactionDetails);
+
+		return ! empty($this->transactionDetails) ? $this->transactionDetails : null;
+	}
+
+	/**
+	 * Returning payment status -> paid yes/no
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return int
+	 */
+	public function isPaid()
+	{
+		return ($this->transactionDetails->status == 'paid') ? 1 : 0;
+	}
+
+	/**
+	 * Getting the real payment state.
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return mixed
+	 */
+	public function getTransactionState()
+	{
+		return $this->transactionDetails->status;
+	}
+
+	/**
+	 * Getting the paid amount so it can be checked.
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return mixed
+	 */
+	public function getTransactionAmount()
+	{
+		return $this->transactionDetails->amount;
+	}
+
+	/**
+	 * Getting the order id to process from the transaction
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return mixed
+	 */
+	public function getOrderIdFromTransaction()
+	{
+		return $this->transactionDetails->metadata->order_id;
 	}
 }
  
