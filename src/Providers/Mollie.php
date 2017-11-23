@@ -44,18 +44,6 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	protected $paymentRedirectUrl;
 	/**
-	 * @var Log
-	 *
-	 * @since __DEPLOY_VERSION__
-	 */
-	private $logger;
-	/**
-	 * @var string
-	 *
-	 * @since __DEPLOY_VERSION__
-	 */
-	private $logfile = 'mollie.log';
-	/**
 	 * @var
 	 *
 	 * @since __DEPLOY_VERSION__
@@ -70,7 +58,6 @@ class Mollie extends Payment implements PaymentInterface
 	public function __construct()
 	{
 		$this->mollie = new Mollie_API_Client;
-		$this->logger = new Log;
 	}
 
 	/**
@@ -161,8 +148,6 @@ class Mollie extends Payment implements PaymentInterface
 		// Getting the payment URL.
 		$this->paymentRedirectUrl = $payment->getPaymentUrl();
 
-		$this->logger->write($this->logfile, 'Redirecting', ['url' => $this->paymentRedirectUrl]);
-
 		return $this;
 	}
 
@@ -197,8 +182,6 @@ class Mollie extends Payment implements PaymentInterface
 			$payment_object['method'] = $this->method;
 		}
 
-		$this->logger->write($this->logfile, 'Created Payment Object', $payment_object);
-
 		return $payment_object;
 	}
 
@@ -232,9 +215,6 @@ class Mollie extends Payment implements PaymentInterface
 
 		$this->mollie->setApiKey($this->apiKey);
 		$this->transactionDetails = $this->mollie->payments->get($token);
-
-		// Write transaction data to log file
-		$this->logger->write($this->logfile, 'IPN Processed', (array) $this->transactionDetails);
 
 		return ! empty($this->transactionDetails) ? $this->transactionDetails : null;
 	}
