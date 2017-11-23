@@ -7,7 +7,6 @@ namespace RDPayments\Providers;
 
 use Mollie_API_Client;
 use RDPayments\Api\PaymentInterface;
-use RDPayments\Log;
 use RDPayments\Payment;
 
 class Mollie extends Payment implements PaymentInterface
@@ -265,6 +264,18 @@ class Mollie extends Payment implements PaymentInterface
 	public function getOrderIdFromTransaction()
 	{
 		return $this->transactionDetails->metadata->order_id;
+	}
+
+	/**
+	 * This function should return the TRIX from the payment information.
+	 *
+	 * @since __DEPLOY_VERSION__
+	 *
+	 * @return string
+	 */
+	public function getTrix()
+	{
+		return '';
 	}
 }
  
