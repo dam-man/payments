@@ -122,7 +122,7 @@ class Mollie extends Payment implements PaymentInterface
 
 		foreach ($this->mollie->methods->all() as $method)
 		{
-			$methods_list[$method->id] = $method->description;
+			$methods_list[$method->id] = ['description' => $method->description, 'image' => $method->image->normal];
 		}
 
 		return $methods_list;
@@ -176,7 +176,7 @@ class Mollie extends Payment implements PaymentInterface
 			$payment_object['issuer'] = $this->issuer;
 		}
 
-		if ($this->method == 'ideal')
+		if (!empty($this->method))
 		{
 			$payment_object['method'] = $this->method;
 		}
@@ -205,7 +205,7 @@ class Mollie extends Payment implements PaymentInterface
 	 *
 	 * @return \Mollie_API_Object_Payment|null
 	 */
-	public function getTransactionDetails($token)
+	public function getTransactionDetails($token, $transid = null)
 	{
 		if(empty($token))
 		{
@@ -275,7 +275,7 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function getTrix()
 	{
-		return '';
+		return $this->transactionDetails->id;
 	}
 }
  
