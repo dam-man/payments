@@ -298,4 +298,18 @@ class Payment
 
 		return $this;
 	}
+
+	/**
+	 * Dumping results in a readable string.
+	 *
+	 * @param array $array
+	 * @since __DEPLOY_VERSION__
+	 */
+	public function dump($array = [])
+	{
+		echo '<pre>';
+		var_dump($array);
+		echo '</pre>';
+		die;
+	}
 }
