@@ -8,9 +8,14 @@ namespace RDPayments\Api;
 interface PaymentInterface
 {
 	public function startPayment($request = []);
+
 	public function getPaymentRedirectUrl();
+
 	public function isPaid();
+
 	public function getTransactionAmount();
+
 	public function getOrderIdFromTransaction();
-	public function getTransactionDetails($token);
+
+	public function getTransactionDetails($token, $payer_id = null);
 }
