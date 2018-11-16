@@ -5,6 +5,8 @@
 
 namespace RDPayments\Providers;
 
+defined('_JEXEC') or die('Restricted access');
+
 use RDPayments\Api\PaymentInterface;
 use RDPayments\Payment;
 use Srmklive\PayPal\Services\ExpressCheckout;

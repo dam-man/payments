@@ -5,6 +5,8 @@
 
 namespace RDPayments\Providers;
 
+defined('_JEXEC') or die('Restricted access');
+
 use Mollie_API_Client;
 use RDPayments\Api\PaymentInterface;
 use RDPayments\Payment;

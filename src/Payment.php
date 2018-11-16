@@ -5,6 +5,8 @@
 
 namespace RDPayments;
 
+defined('_JEXEC') or die('Restricted access');
+
 class Payment
 {
 	/**

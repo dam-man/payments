@@ -5,6 +5,8 @@
 
 namespace RDPayments\Providers;
 
+defined('_JEXEC') or die('Restricted access');
+
 use OpenPayU_Configuration;
 use OpenPayU_Exception;
 use OpenPayU_Order;
