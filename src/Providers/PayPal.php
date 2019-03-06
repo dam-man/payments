@@ -17,67 +17,67 @@ class PayPal extends Payment implements PaymentInterface
 {
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $transactionToken;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $paymentRedirectUrl;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $return_url;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $username;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $signature;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $password;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $currency;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $redirectUrl;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $paid_amount;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $payment_state = false;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $payment_message;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $response;
 	/**
 	 * @var
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $redirect = true;
 
@@ -87,7 +87,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * @return bool
 	 * @throws \Exception
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function startPayment($request = [])
 	{
@@ -115,7 +115,7 @@ class PayPal extends Payment implements PaymentInterface
 	/**
 	 * @return array
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private function getOrderDetails()
 	{
@@ -133,7 +133,7 @@ class PayPal extends Payment implements PaymentInterface
 	/**
 	 * Requesting the payment at PayPal.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @param      $token
 	 * @param null $payerid
@@ -180,7 +180,7 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @return array
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private function getCredentials()
 	{
@@ -212,7 +212,7 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @param $request
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function ipn($request = [])
 	{
@@ -244,7 +244,7 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @param $message
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private function log($message)
 	{
@@ -255,7 +255,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * Returns the response of the payment.
 	 *
 	 * @return string
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function getPaymentProviderResponse()
 	{
@@ -267,7 +267,7 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @return mixed
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function getPaymentRedirectUrl()
 	{
@@ -278,7 +278,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * Returning the payemnt state
 	 *
 	 * @return mixed
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function isPaid()
 	{
@@ -289,7 +289,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * Can be requested when a transaction failed.
 	 *
 	 * @return mixed
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function failedPaymentMessage()
 	{
@@ -300,7 +300,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * Returning the paid amount.
 	 *
 	 * @return mixed
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function getTransactionAmount()
 	{
@@ -309,7 +309,7 @@ class PayPal extends Payment implements PaymentInterface
 
 	/**
 	 * @return mixed
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function getOrderIdFromTransaction()
 	{
@@ -319,7 +319,7 @@ class PayPal extends Payment implements PaymentInterface
 	/**
 	 * This function should return the TRIX from the payment information.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return string
 	 */
@@ -333,7 +333,7 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @return bool
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function canRedirect()
 	{

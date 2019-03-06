@@ -16,45 +16,45 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * @var null
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $method = null;
 	/**
 	 * @var array
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $methods = [];
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $issuer = null;
 
 	/**
 	 * @var Mollie_API_Client
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $mollie;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $paymentRedirectUrl;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	private $transactionDetails;
 
 	/**
 	 * Mollie constructor.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function __construct()
 	{
@@ -64,7 +64,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Getting all issuers when using IDeal.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return array
 	 */
@@ -85,7 +85,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * @param null $issuer
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -99,7 +99,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * @param null $method
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -113,7 +113,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Getting available payment methods.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	public function getAvailablemethods()
 	{
@@ -133,7 +133,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Creating or starting the payment request.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @param array $request
 	 *
@@ -155,7 +155,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Preparing a payment object for Mollie
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return array
 	 */
@@ -189,7 +189,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Returning a payment url if needed for the payment provider.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return mixed
 	 */
@@ -203,7 +203,7 @@ class Mollie extends Payment implements PaymentInterface
 	 *
 	 * @param $token
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return \Mollie_API_Object_Payment|null
 	 */
@@ -223,7 +223,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Returning payment status -> paid yes/no
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return int
 	 */
@@ -235,7 +235,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Getting the real payment state.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return mixed
 	 */
@@ -247,7 +247,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Getting the paid amount so it can be checked.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return mixed
 	 */
@@ -259,7 +259,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * Getting the order id to process from the transaction
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return mixed
 	 */
@@ -271,7 +271,7 @@ class Mollie extends Payment implements PaymentInterface
 	/**
 	 * This function should return the TRIX from the payment information.
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return string
 	 */

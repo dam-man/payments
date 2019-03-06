@@ -5,138 +5,55 @@
 
 namespace RDPayments\Providers;
 
+use RDPayments\Payment;
+use RDPayments\Api\PaymentInterface;
+
 defined('_JEXEC') or die('Restricted access');
 
-class MultiSafePay
+class MultiSafePay extends Payment implements PaymentInterface
 {
 	/**
 	 * @var
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
-	private $key;
-
+	protected $url;
 	/**
 	 * @var
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
-	private $url;
+	private $transactionDetails;
 	/**
 	 * @var
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
-	private $headers;
-
-	/**
-	 * @param $key
-	 *
-	 * @since [ VERSION ]
-	 */
-	public function setApiKey($key)
-	{
-		$this->key     = $key;
-		$this->headers = ['api_key' => $key];
-	}
+	protected $paymentUrl;
 
 	/**
 	 * @param $url
 	 *
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
 	public function setUrl($url)
 	{
 		$this->url = $url;
+
+		return $this;
 	}
 
 	/**
-	 * Retreiving all Gateways
+	 * Getting the headers for the request.
+	 * It is required for all requests to MultiSafePay
 	 *
-	 * @return bool
-	 *
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
-	public function getPaymentGateways()
+	public function getHeaders($key = null)
 	{
-		try
+		if ($key)
 		{
-			$content = \JHttpFactory::getHttp()->get($this->url . 'gateways?country=NL', $this->headers)->body;
-		}
-		catch (\RuntimeException $e)
-		{
-			return false;
+			return ['api_key' => $this->apiKey];
 		}
 
-		$gateways = json_decode($content);
-
-		return $gateways->data;
-	}
-
-	/**
-	 * @param null  $method
-	 * @param array $gateways
-	 *
-	 * @return bool
-	 *
-	 * @since [ VERSION ]
-	 */
-	public function isActiveGateWay($method = null, $gateways = [])
-	{
-		foreach ($gateways as $gateway)
-		{
-			if ($method === $gateway->id)
-			{
-				return true;
-			}
-		}
-	}
-
-	/**
-	 * Getting orderdetails from a specific order from MultisafePay
-	 *
-	 * @param string $method
-	 *
-	 * @return bool|mixed
-	 *
-	 * @since [ VERSION ]
-	 */
-	public function getOrderDetails($order_id)
-	{
-		try
-		{
-			$content = \JHttpFactory::getHttp()->get($this->url . 'orders/' . $order_id, $this->headers)->body;
-		}
-		catch (\RuntimeException $e)
-		{
-			return false;
-		}
-
-		$issuers = json_decode($content);
-
-		return $issuers->data;
-	}
-
-	/**
-	 * Getting iDeal Issuers from MultisafePay
-	 *
-	 * @param string $method
-	 *
-	 * @return bool|mixed
-	 *
-	 * @since [ VERSION ]
-	 */
-	public function getIdealIssuers($method = 'IDEAL')
-	{
-		try
-		{
-			$content = \JHttpFactory::getHttp()->get($this->url . 'issuers/' . $method, $this->headers)->body;
-		}
-		catch (\RuntimeException $e)
-		{
-			return false;
-		}
-
-		$issuers = json_decode($content);
-
-		return $issuers->data;
+		return ['api_key' => $this->apiKey];
 	}
 
 	/**
@@ -146,15 +63,19 @@ class MultiSafePay
 	 *
 	 * @return string
 	 *
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
-	public function getRedirectUrlForPayment($post = [], $customer = [])
+	public function startPayment($request = [])
 	{
-		$data = $this->preparePaymentData($post, $customer);
+		// Getting pyment details
+		$data = $this->preparePaymentData();
+
+		// Getting the url for redirects
+		$url = $this->getUrlForTransaction();
 
 		try
 		{
-			$content = \JHttpFactory::getHttp()->post($this->url . 'orders', $data, $this->headers)->body;
+			$content = \JHttpFactory::getHttp()->post($url . 'orders', $data, $this->getHeaders())->body;
 		}
 		catch (\RuntimeException $e)
 		{
@@ -163,7 +84,21 @@ class MultiSafePay
 
 		$payment = json_decode($content);
 
-		return $payment->data->payment_url;
+		$this->paymentUrl = isset($payment->data->payment_url) ? $payment->data->payment_url : null;
+	}
+
+	/**
+	 * Getting the URL and sadbox settings.
+	 *
+	 * @since [VERSION]
+	 */
+	public function getUrlForTransaction()
+	{
+		// Setting specific sandbox things.
+		$prefix = $this->sandbox ? 'testapi' : 'api';
+
+		// Getting the domain for this call.
+		return 'https://' . $prefix . '.multisafepay.com/v1/json/';
 	}
 
 	/**
@@ -174,24 +109,130 @@ class MultiSafePay
 	 *
 	 * @return array
 	 *
-	 * @since [ VERSION ]
+	 * @since [VERSION]
 	 */
 	private function preparePaymentData($post = [], $customer = [])
 	{
 		$data = [
 			"type"            => "redirect",
-			"order_id"        => $post['ordercode'],
-			"currency"        => "EUR",
-			"amount"          => $post['amount'],
-			"description"     => $post['description'],
-			"var_1"           => $post['var1'],
+			"order_id"        => $this->orderid,
+			"currency"        => $this->currency,
+			"amount"          => $this->amount,
+			"description"     => $this->description,
 			"payment_options" => [
-				"notification_url" => $post['notify_url'],
-				"redirect_url"     => $post['return_url'],
-				"cancel_url"       => $post['cancel_url'],
+				"notification_url" => $this->webhookUrl,
+				"redirect_url"     => $this->redirectUrl,
+				"cancel_url"       => $this->setCancelUrl,
 			],
 		];
 
 		return $data;
+	}
+
+	/**
+	 * Giving back the payment url for the redirect in the plugin.
+	 *
+	 * @return mixed
+	 */
+	public function getPaymentRedirectUrl()
+	{
+		return $this->paymentUrl;
+	}
+
+	/**
+	 * Returns the result of the transaction. (true/false)
+	 *
+	 * @return int
+	 * @since [VERSION]
+	 */
+	public function isPaid()
+	{
+		if (isset($this->transactionDetails['data']['status']) && $this->transactionDetails['data']['status'] == 'completed')
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returning the paid amount.
+	 *
+	 * @return float|int|null
+	 * @since [VERSION]
+	 */
+	public function getTransactionAmount()
+	{
+		return isset($this->transactionDetails['data']['amount']) ? $this->transactionDetails['data']['amount'] / 100 : 0;
+	}
+
+	/**
+	 * Returning the transaction ID from the payment provider for refunds.
+	 *
+	 * @return null
+	 * @since [VERSION]
+	 */
+	public function getOrderIdFromTransaction()
+	{
+		return isset($this->transactionDetails['data']['transaction_id']) ? $this->transactionDetails['data']['transaction_id'] : null;
+	}
+
+	/**
+	 * Returning the transaction ID from the payment provider for refunds.
+	 *
+	 * @return null
+	 * @since [VERSION]
+	 */
+	public function getTrix()
+	{
+		return isset($this->transactionDetails['data']['transaction_id']) ? $this->transactionDetails['data']['transaction_id'] : null;
+	}
+
+	/**
+	 * Returning the transaction ID from the payment provider for refunds.
+	 *
+	 * @return null
+	 * @since [VERSION]
+	 */
+	public function getPaymentDetailsAsJsonObject()
+	{
+		return isset($this->transactionDetails['data']) ? json_encode($this->transactionDetails['data']) : null;
+	}
+
+	/**
+	 * Returning the transaction ID from the payment provider for refunds.
+	 *
+	 * @return null
+	 * @since [VERSION]
+	 */
+	public function getPaymentDetailsAsArray()
+	{
+		return isset($this->transactionDetails['data']) ? $this->transactionDetails['data'] : [];
+	}
+
+	/**
+	 * Getting orderdetails from a specific order from MultisafePay
+	 *
+	 * @param      $token
+	 * @param null $payer_id
+	 *
+	 * @return bool
+	 * @since [VERSION]
+	 */
+	public function getTransactionDetails($token, $payer_id = null)
+	{
+		try
+		{
+			$content = \JHttpFactory::getHttp()->get($this->getUrlForTransaction() . 'orders/' . $token, $this->getHeaders())->body;
+		}
+		catch (\RuntimeException $e)
+		{
+			return false;
+		}
+
+		// Getting the reults from MultisafePay
+		$this->transactionDetails = json_decode($content, true);
+
+		return true;
 	}
 }
