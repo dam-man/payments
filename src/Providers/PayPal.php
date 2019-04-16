@@ -9,12 +9,16 @@ defined('_JEXEC') or die('Restricted access');
 
 use RDPayments\Api\PaymentInterface;
 use RDPayments\Payment;
+use RDPayments\Traits\Log;
+use RDPayments\Ipn\PayPal as IpnListener;
 use Srmklive\PayPal\Services\ExpressCheckout;
 
 jimport('joomla.log.log');
 
 class PayPal extends Payment implements PaymentInterface
 {
+	use Log;
+
 	/**
 	 * @var
 	 * @since [VERSION]
@@ -74,7 +78,7 @@ class PayPal extends Payment implements PaymentInterface
 	 * @var
 	 * @since [VERSION]
 	 */
-	private $response;
+	private $response = null;
 	/**
 	 * @var
 	 * @since [VERSION]
@@ -214,41 +218,31 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @since [VERSION]
 	 */
-	public function ipn($request = [])
+	public function ipn($response = [], $sandbox = true)
 	{
-		$this->log(json_encode($request));
+		Log::message('PayPalExpress', 'New IPN request received.');
 
-		// Instantiate the Express Checkout.
-		$provider = new ExpressCheckout;
+		$listener = new IpnListener;
 
-		// Prepare the request for this IPN message.
-		$request = array_merge($request, ['cmd' => '_notify-validate']);
+		$listener->use_sandbox     = $sandbox;
+		$listener->use_curl        = true;
+		$listener->follow_location = false;
+		$listener->timeout         = 30;
+		$listener->verify_ssl      = false;
 
-		// Requesting the IPN result from PayPal.
-		$response = (string) $provider->verifyIPN($request);
-
-		$request_logger = http_build_query($request);
-		$this->log($request_logger);
-
-		$request_logger = http_build_query($response);
-		$this->log($request_logger);
-
-		if ($response === 'VERIFIED')
+		if ($verified = $listener->processIpn())
 		{
-			$this->log(json_encode($response));
-		}
-	}
+			Log::message('PayPalExpress', 'IPN Verified');
+			Log::message('PayPalExpress', $listener->getRawPostData());
 
-	/**
-	 * Adding items to the log file with JLog
-	 *
-	 * @param $message
-	 *
-	 * @since [VERSION]
-	 */
-	private function log($message)
-	{
-		\RDMedia\Log::write($message, 'PP-IPN');
+			$this->response = $listener->getRawPostData();
+
+			return true;
+		}
+
+		Log::message('PayPalExpress', 'IPN Not Verified');
+
+		return false;
 	}
 
 	/**

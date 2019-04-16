@@ -7,12 +7,15 @@ namespace RDPayments\Providers;
 
 defined('_JEXEC') or die('Restricted access');
 
-use Mollie_API_Client;
+use Mollie\Api\MollieApiClient;
 use RDPayments\Api\PaymentInterface;
 use RDPayments\Payment;
+use RDPayments\Traits\Log;
 
 class Mollie extends Payment implements PaymentInterface
 {
+	use Log;
+
 	/**
 	 * @var null
 	 *
@@ -37,7 +40,7 @@ class Mollie extends Payment implements PaymentInterface
 	 *
 	 * @since [VERSION]
 	 */
-	private $mollie;
+	protected $mollie;
 	/**
 	 * @var
 	 *
@@ -49,7 +52,13 @@ class Mollie extends Payment implements PaymentInterface
 	 *
 	 * @since [VERSION]
 	 */
-	private $transactionDetails;
+	protected $transactionDetails;
+	/**
+	 * @var
+	 *
+	 * @since [VERSION]
+	 */
+	private $issuers;
 
 	/**
 	 * Mollie constructor.
@@ -58,7 +67,7 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function __construct()
 	{
-		$this->mollie = new Mollie_API_Client;
+		$this->mollie = new MollieApiClient;
 	}
 
 	/**
@@ -70,6 +79,11 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function getIssuers()
 	{
+		if ( ! empty($this->issuers))
+		{
+			return $this->issuers;
+		}
+
 		$issuer_list = [];
 
 		$this->mollie->setApiKey($this->apiKey);
@@ -83,6 +97,23 @@ class Mollie extends Payment implements PaymentInterface
 	}
 
 	/**
+	 * Setting issuers for the payment method/.
+	 *
+	 * @since [VERSION]
+	 *
+	 * @return array
+	 */
+	private function setIssuers($method = null, $issuers = [])
+	{
+		foreach ($issuers as $issuer)
+		{
+			$this->issuers[$method][$issuer->id] = $issuer->name;
+		}
+
+		return true;
+	}
+
+	/**
 	 * @param null $issuer
 	 *
 	 * @since [VERSION]
@@ -91,7 +122,7 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function setIssuer($issuer = null)
 	{
-		$this->issuer = ! empty($issuer) ? $issuer : $this->issuer;
+		$this->issuer[] = ! empty($issuer) ? $issuer : $this->issuer;
 
 		return $this;
 	}
@@ -122,9 +153,17 @@ class Mollie extends Payment implements PaymentInterface
 		// Setting the Api Key for Mollie
 		$this->mollie->setApiKey($this->apiKey);
 
-		foreach ($this->mollie->methods->all() as $method)
+		// Getting methods from the API:
+		$methods = $this->mollie->methods->all(['include' => 'issuers']);
+
+		foreach ($methods as $method)
 		{
-			$methods_list[$method->id] = ['description' => $method->description, 'image' => $method->image->normal];
+			$methods_list[$method->id] = ['description' => $method->description, 'size1x' => $method->image->size2x, 'size2x' => $method->image->size2x];
+
+			if (isset($method->issuers) && ! empty($method->issuers))
+			{
+				$this->setIssuers($method->id, $method->issuers);
+			}
 		}
 
 		return $methods_list;
@@ -147,7 +186,10 @@ class Mollie extends Payment implements PaymentInterface
 		$payment = $this->mollie->payments->create($this->getPaymentObject());
 
 		// Getting the payment URL.
-		$this->paymentRedirectUrl = $payment->getPaymentUrl();
+		$this->paymentRedirectUrl = $payment->getCheckoutUrl();
+
+		// Setting the payment ID
+		$this->payment_id = $payment->id;
 
 		return $this;
 	}
@@ -162,7 +204,10 @@ class Mollie extends Payment implements PaymentInterface
 	public function getPaymentObject()
 	{
 		$payment_object = [
-			'amount'      => $this->amount,
+			"amount"      => [
+				"currency" => 'EUR',
+				"value"    => $this->amount,
+			],
 			'description' => $this->description,
 			'redirectUrl' => $this->redirectUrl,
 			'webhookUrl'  => $this->webhookUrl,
@@ -178,12 +223,106 @@ class Mollie extends Payment implements PaymentInterface
 			$payment_object['issuer'] = $this->issuer;
 		}
 
-		if (!empty($this->method))
+		if ( ! empty($this->method))
 		{
 			$payment_object['method'] = $this->method;
 		}
 
+		// Log the transaction to the log system
+		Log::message('Mollie', $payment_object, $this->orderid);
+
 		return $payment_object;
+	}
+
+	/**
+	 * @param $transaction_id
+	 *
+	 * @throws \Mollie\Api\Exceptions\ApiException
+	 *
+	 * @since   1.5.0
+	 * @version [VERSION]
+	 */
+	public function refund($transaction_id, $amount = null)
+	{
+		$this->mollie->setApiKey($this->apiKey);
+
+		$transaction = $this->getTransactionDetails($transaction_id);
+
+		if (empty($transaction))
+		{
+			return false;
+		}
+
+		// Is this a partial refund or a full refund.
+		$amount = ! empty($amount) ? $amount : $this->getTransactionAmount();
+
+		// Properly formatting the amount for the Mollie API.
+		$amount = number_format($amount, 2, '.', '');
+
+		if ( ! $this->isRefundPossible($amount))
+		{
+			return false;
+		}
+
+		try
+		{
+			$refund = $transaction->refund([
+				'amount' => [
+					'currency' => $this->getUsedCurrency(),
+					'value'    => $amount,
+				],
+			]);
+
+			return true;
+		}
+		catch (Mollie_API_Exception $e)
+		{
+			Log::message('Mollie', $e->getMessage());
+			JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+
+			return false;
+		}
+	}
+
+	/**
+	 * Getting the maximum amount to refund from the transaction.
+	 * Refund maximum amount to refund = transaction amount + 25.
+	 * EG: Order total: 25.00 (maximum refund amount = 25 +25 = 50)
+	 *
+	 * @return mixed
+	 * @since   1.5.0
+	 * @version [VERSION]
+	 */
+	private function isRefundPossible($amount)
+	{
+		$amount  = $amount * 100;
+		$maximum = $this->transactionDetails->amountRemaining->value * 100;
+
+		return ($amount <= $maximum) ? true : false;
+	}
+
+	/**
+	 * Getting the used currecy for refunds.
+	 *
+	 * @return mixed
+	 * @since   1.5.0
+	 * @version [VERSION]
+	 */
+	public function getUsedCurrency()
+	{
+		return $this->transactionDetails->amount->currency;
+	}
+
+	/**
+	 * Returning the payment ID
+	 *
+	 * @since [VERSION]
+	 *
+	 * @return mixed
+	 */
+	public function getPaymentId()
+	{
+		return isset($this->payment_id) ? $this->payment_id : 0;
 	}
 
 	/**
@@ -209,13 +348,20 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function getTransactionDetails($token, $transid = null)
 	{
-		if(empty($token))
+		if (empty($token))
 		{
 			return null;
 		}
 
-		$this->mollie->setApiKey($this->apiKey);
-		$this->transactionDetails = $this->mollie->payments->get($token);
+		try
+		{
+			$this->mollie->setApiKey($this->apiKey);
+			$this->transactionDetails = $this->mollie->payments->get($token);
+		}
+		catch (Mollie_API_Exception $e)
+		{
+			JFactory::getApplication()->enqueueMessage($e->getMessage(), 'error');
+		}
 
 		return ! empty($this->transactionDetails) ? $this->transactionDetails : null;
 	}
@@ -253,7 +399,7 @@ class Mollie extends Payment implements PaymentInterface
 	 */
 	public function getTransactionAmount()
 	{
-		return $this->transactionDetails->amount;
+		return $this->transactionDetails->amount->value;
 	}
 
 	/**
@@ -278,6 +424,17 @@ class Mollie extends Payment implements PaymentInterface
 	public function getTrix()
 	{
 		return $this->transactionDetails->id;
+	}
+
+	/**
+	 * This function should return theuse rpayment method which has been chosen by the client.
+	 *
+	 * @return mixed
+	 * @since [VERSION]
+	 */
+	public function getPaymentMethod()
+	{
+		return $this->transactionDetails->method;
 	}
 }
  
