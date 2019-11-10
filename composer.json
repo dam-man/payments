@@ -5,6 +5,9 @@
 	"type": "library",
 	"minimum-stability": "dev",
     "require": {
+		"mollie/mollie-api-php": "^2.0",
+		"srmklive/paypal": "~1.0",
+		"stripe/stripe-php": "v6.39.2"
     },
     "autoload": {
         "psr-4": {
