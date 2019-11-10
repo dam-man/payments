@@ -12,94 +12,99 @@ class Payment
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $apiKey;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $username;
 	/**
 	 * @var bool
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $sandbox = false;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $password;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $signature;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $description;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $currency;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $amount;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $redirectUrl;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $setCancelUrl;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $webhookUrl;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $redirectPaymentUrl;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $orderid;
 	/**
 	 * @var
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 */
 	protected $locale;
+	/**
+	 * @var array
+	 * @since 1.4.1
+	 */
+	protected $cart_items = [];
 
 	/**
 	 * Setting a custom API Key for usage in Provider classes.
 	 *
 	 * @param $apiKey
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -115,7 +120,7 @@ class Payment
 	 *
 	 * @param bool $sandbox
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -131,7 +136,7 @@ class Payment
 	 *
 	 * @param $username
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -147,7 +152,7 @@ class Payment
 	 *
 	 * @param $password
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -163,7 +168,7 @@ class Payment
 	 *
 	 * @param $signature
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -179,7 +184,7 @@ class Payment
 	 *
 	 * @param $description
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -191,11 +196,25 @@ class Payment
 	}
 
 	/**
+	 * Setting cart items for checkout.
+	 *
+	 * @param array $items
+	 *
+	 * @return $this
+	 */
+	public function setCartItems($items = [])
+	{
+		$this->cart_items = ! empty($items) ? $items : [];
+
+		return $this;
+	}
+
+	/**
 	 * Setting the currency for the Payment Provider.
 	 *
 	 * @param string $currency
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -212,7 +231,7 @@ class Payment
 	 * @param      $amount
 	 * @param bool $cents
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -226,7 +245,7 @@ class Payment
 	/**
 	 * Setting the return URL
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @param $returnUrl
 	 *
@@ -244,7 +263,7 @@ class Payment
 	 *
 	 * @param $webhookUrl
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -260,7 +279,7 @@ class Payment
 	 *
 	 * @param $cancelUrl
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -274,7 +293,7 @@ class Payment
 	/**
 	 * Setting the checksout locale
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @param $locale
 	 *
@@ -290,7 +309,7 @@ class Payment
 	/**
 	 * @param null $orderid
 	 *
-	 * @since __DEPLOY_VERSION__
+	 * @since [VERSION]
 	 *
 	 * @return $this
 	 */
@@ -302,10 +321,27 @@ class Payment
 	}
 
 	/**
+	 * Setting a payment token for tokenized payments.
+	 *
+	 * @param $token
+	 *
+	 * @since [VERSION]
+	 *
+	 * @return $this
+	 */
+	public function setPaymentToken($token)
+	{
+		$this->token = $token;
+
+		return $this;
+	}
+
+	/**
 	 * Dumping results in a readable string.
 	 *
 	 * @param array $array
-	 * @since __DEPLOY_VERSION__
+	 *
+	 * @since [VERSION]
 	 */
 	public function dump($array = [])
 	{
