@@ -20,7 +20,7 @@ trait Log
 			return;
 		}
 
-		$path = \JFactory::getConfig()->get('log_path') . '/rdsubs_' . strtolower($id) . '.php';
+		$path = \JFactory::getConfig()->get('log_path') . '/rdmedia_' . strtolower($id) . '.php';
 
 		$output = [];
 
