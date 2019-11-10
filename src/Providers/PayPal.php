@@ -123,6 +123,8 @@ class PayPal extends Payment implements PaymentInterface
 	 */
 	private function getOrderDetails()
 	{
+		$landingpage = empty($this->landingpage) ? 'Login' : $this->landingpage;
+
 		return [
 			'invoice_id'          => $this->orderid,
 			'invoice_description' => $this->description,
@@ -130,8 +132,24 @@ class PayPal extends Payment implements PaymentInterface
 			'cancel_url'          => $this->redirectUrl . '&state=cancelled',
 			'total'               => $this->amount,
 			'locale'              => empty($this->locale) ? 'en-GB' : $this->locale,
-			'items'               => [],
+			'currency'            => empty($this->currency) ? 'EUR' : $this->currency,
+			'landingpage'         => $landingpage,
+			'items'               => $this->cart_items,
 		];
+	}
+
+	/**
+	 * Setting a custom landingpage for the customer.
+	 *
+	 * @param $page
+	 *
+	 * @return $this
+	 */
+	public function setLandingPage($page)
+	{
+		$this->landingpage = ($page == 'creditcard' ? 'Billing' : 'Login');
+
+		return $this;
 	}
 
 	/**
@@ -243,6 +261,45 @@ class PayPal extends Payment implements PaymentInterface
 		Log::message('PayPalExpress', 'IPN Not Verified');
 
 		return false;
+	}
+
+	/**
+	 * Refund the money to the customer.
+	 * To issue partial refund, you must provide the amount as well for refund
+	 *
+	 * @param $transaction
+	 * @param $amount
+	 */
+	public function refund($transaction, $amount = null)
+	{
+		if ($amount)
+		{
+			$amount = number_format($amount, 2, '.', '');
+		}
+
+		// Instantiate the PayPal Express Checkout
+		$paypalexpress = new ExpressCheckout;
+
+		// Sending the credentals and settings
+		$paypalexpress->setApiCredentials($this->getCredentials());
+		$paypalexpress->setCurrency($this->currency);
+
+		$response = $paypalexpress->refundTransaction($transaction, $amount);
+
+		if ( ! isset($responseNvp['ACK']) || $responseNvp['ACK'] != 'Success')
+		{
+			// Seetting error message
+			$this->payment_message = $response['L_ERRORCODE0'] . ':' . $response['L_SHORTMESSAGE0'] . ' - ' . $response['L_LONGMESSAGE0'];
+
+			// Paymentstate = false
+			$this->payment_state = false;
+
+			return true;
+		}
+
+		$this->payment_message = JText::sprintf('PLG_RDMEDIA_PAYPAL_REFUNDED', $data['transaction'], $response['REFUNDTRANSACTIONID']);
+
+		return true;
 	}
 
 	/**
