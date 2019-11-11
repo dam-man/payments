@@ -177,8 +177,10 @@ class PayPal extends Payment implements PaymentInterface
 		$paypalexpress->setApiCredentials($this->getCredentials());
 		$response = $paypalexpress->getExpressCheckoutDetails($token);
 
-		$this->paid_amount      = $response['AMT'];
-		$this->transactionToken = $response['TOKEN'];
+		// Setting some things which can be requested later on.
+		$this->paid_amount      = isset($response['PAYMENTINFO_0_AMT']) ? $response['PAYMENTINFO_0_AMT'] : 0;
+		$this->transactionToken = isset($response['PAYMENTINFO_0_TRANSACTIONID']) ? $response['PAYMENTINFO_0_TRANSACTIONID'] : null;
+		$this->payment_message  = ! empty($response['L_LONGMESSAGE0']) ? $response['L_LONGMESSAGE0'] : '';
 
 		if (strtolower($response['ACK']) === strtolower('Success'))
 		{
@@ -190,12 +192,6 @@ class PayPal extends Payment implements PaymentInterface
 			if (strtolower($this->response['ACK']) === 'success' || strtolower($this->response['PAYMENTINFO_0_ACK']) === 'success' && $this->paid_amount == $transaction['total'])
 			{
 				$this->payment_state = true;
-			}
-
-			// Message for failed payments
-			if ( ! $this->payment_state)
-			{
-				$this->payment_message = ! empty($response['L_LONGMESSAGE0']) ? $response['L_LONGMESSAGE0'] : 'Undefined Message';
 			}
 		}
 
@@ -314,8 +310,13 @@ class PayPal extends Payment implements PaymentInterface
 	 * @return string
 	 * @since [VERSION]
 	 */
-	public function getPaymentProviderResponse()
+	public function getPaymentProviderResponse($log = false)
 	{
+		if ($log)
+		{
+			Log::message('PayPalExpress', $this->response);
+		}
+
 		return $this->response;
 	}
 
