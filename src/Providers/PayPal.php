@@ -84,6 +84,11 @@ class PayPal extends Payment implements PaymentInterface
 	 * @since [VERSION]
 	 */
 	private $redirect = true;
+	/**
+	 * @var
+	 * @since [VERSION]
+	 */
+	private $billing_type = 'MerchantInitiatedBilling';
 
 	/**
 	 * @param array $request
@@ -225,6 +230,7 @@ class PayPal extends Payment implements PaymentInterface
 			'payment_action' => 'Sale',
 			'currency'       => $this->currency,
 			'notify_url'     => $this->redirectUrl,
+			'billing_type'   => $this->billing_type,
 			'validate_ssl'   => true,
 		];
 	}
