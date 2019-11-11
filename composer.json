@@ -1,9 +1,17 @@
 {
-	"name": "rdmedia/payments",
-	"description": "Payments Library from RD-Media",
-	"license": "MIT",
-	"type": "library",
-	"minimum-stability": "dev",
+    "name": "rdmedia/payments",
+    "description": "Payments Library from RD-Media",
+    "license": "MIT",
+    "type": "library",
+    "minimum-stability": "dev",
+    "homepage": "https://rd-media.org",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Robert Dam",
+            "email": "info@rd-media.org"
+        }
+    ],	
     "require": {
 		"mollie/mollie-api-php": "^2.0",
 		"srmklive/paypal": "~1.0",
