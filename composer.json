@@ -5,7 +5,7 @@
     "type": "library",
     "minimum-stability": "dev",
     "homepage": "https://rd-media.org",
-    "license": "GPL",
+    "license": "MIT",
     "authors": [
         {
             "name": "Robert Dam",
