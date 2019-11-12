@@ -177,21 +177,30 @@ class PayPal extends Payment implements PaymentInterface
 		$paypalexpress->setApiCredentials($this->getCredentials());
 		$response = $paypalexpress->getExpressCheckoutDetails($token);
 
-		// Setting some things which can be requested later on.
-		$this->paid_amount      = isset($response['PAYMENTINFO_0_AMT']) ? $response['PAYMENTINFO_0_AMT'] : 0;
-		$this->transactionToken = isset($response['PAYMENTINFO_0_TRANSACTIONID']) ? $response['PAYMENTINFO_0_TRANSACTIONID'] : null;
-		$this->payment_message  = ! empty($response['L_LONGMESSAGE0']) ? $response['L_LONGMESSAGE0'] : '';
-
+		// Checking payment status
 		if (strtolower($response['ACK']) === strtolower('Success'))
 		{
 			// Preparing the transaction details.
 			$transaction    = array_merge($this->getOrderDetails(), $this->getCredentials());
 			$this->response = $paypalexpress->doExpressCheckoutPayment($transaction, $token, $payerid);
 
-			// Checking payment state and comparing the amounts
-			if (strtolower($this->response['ACK']) === 'success' || strtolower($this->response['PAYMENTINFO_0_ACK']) === 'success' && $this->paid_amount == $transaction['total'])
+			// Setting some things which can be requested later on.
+			$this->paid_amount      = isset($this->response['PAYMENTINFO_0_AMT']) ? $this->response['PAYMENTINFO_0_AMT'] : 0;
+			$this->transactionToken = isset($this->response['PAYMENTINFO_0_TRANSACTIONID']) ? $this->response['PAYMENTINFO_0_TRANSACTIONID'] : null;
+			$this->payment_message  = ! empty($this->response['L_LONGMESSAGE0']) ? $this->response['L_LONGMESSAGE0'] : '';
+
+			if (strtolower($this->response['ACK']) === 'successwithwarning' ||
+				strtolower($this->response['ACK']) === 'success' ||
+				strtolower($this->response['PAYMENTINFO_0_ACK']) === 'success'
+				&& $this->paid_amount == $transaction['total']
+			)
 			{
 				$this->payment_state = true;
+			}
+
+			if ($this->paid_amount != $transaction['total'])
+			{
+				$this->payment_message = 'Paid amount is not the same as the requested amount.';
 			}
 		}
 
@@ -227,6 +236,7 @@ class PayPal extends Payment implements PaymentInterface
 			'currency'       => $this->currency,
 			'notify_url'     => $this->redirectUrl,
 			'billing_type'   => $this->billing_type,
+			'locale'         => 'en-GB',
 			'validate_ssl'   => true,
 		];
 	}
@@ -271,6 +281,8 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @param $transaction
 	 * @param $amount
+	 *
+	 * @since [VERSION]
 	 */
 	public function refund($transaction, $amount = null)
 	{
@@ -288,7 +300,7 @@ class PayPal extends Payment implements PaymentInterface
 
 		$response = $paypalexpress->refundTransaction($transaction, $amount);
 
-		if ( ! isset($responseNvp['ACK']) || $responseNvp['ACK'] != 'Success')
+		if ( ! isset($response['ACK']) || $response['ACK'] != 'Success')
 		{
 			// Seetting error message
 			$this->payment_message = $response['L_ERRORCODE0'] . ':' . $response['L_SHORTMESSAGE0'] . ' - ' . $response['L_LONGMESSAGE0'];
@@ -299,7 +311,7 @@ class PayPal extends Payment implements PaymentInterface
 			return true;
 		}
 
-		$this->payment_message = JText::sprintf('PLG_RDMEDIA_PAYPAL_REFUNDED', $data['transaction'], $response['REFUNDTRANSACTIONID']);
+		$this->payment_message = \JText::sprintf('PLG_RDMEDIA_PAYPAL_REFUNDED', $transaction, $response['REFUNDTRANSACTIONID']);
 
 		return true;
 	}
@@ -310,13 +322,8 @@ class PayPal extends Payment implements PaymentInterface
 	 * @return string
 	 * @since [VERSION]
 	 */
-	public function getPaymentProviderResponse($log = false)
+	public function getPaymentProviderResponse()
 	{
-		if ($log)
-		{
-			Log::message('PayPalExpress', $this->response);
-		}
-
 		return $this->response;
 	}
 
