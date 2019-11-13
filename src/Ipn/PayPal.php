@@ -10,8 +10,12 @@
 
 namespace RDPayments\Ipn;
 
+use RDPayments\Traits\Log;
+
 class PayPal
 {
+	use Log;
+
 	/**
 	 *  If true, the recommended cURL PHP library is used to send the post back
 	 *  to PayPal. If flase then fsockopen() is used. Default true.
@@ -53,7 +57,8 @@ class PayPal
 
 	private $_errors         = [];
 	private $post_data;
-	private $rawPostData;                // raw data from php://input
+	private $message         = [];
+	private $rawPostData;
 	private $post_uri        = '';
 	private $response_status = '';
 	private $response        = '';
@@ -101,7 +106,8 @@ class PayPal
 		{
 			$errno  = curl_errno($ch);
 			$errstr = curl_error($ch);
-			throw new Exception("cURL error: [$errno] $errstr");
+
+			throw new \Exception("cURL error: [$errno] $errstr");
 		}
 
 		return $this->response;
@@ -131,7 +137,7 @@ class PayPal
 		if ( ! $fp)
 		{
 			// fsockopen error
-			throw new Exception("fsockopen error: [$errno] $errstr");
+			throw new \Exception("fsockopen error: [$errno] $errstr");
 		}
 
 		$header = "POST /cgi-bin/webscr HTTP/1.1\r\n";
@@ -186,6 +192,11 @@ class PayPal
 		return $this->rawPostData;
 	}
 
+	public function getIpnMessage()
+	{
+		return $this->message;
+	}
+
 	/**
 	 *  Get POST URI
 	 *
@@ -194,6 +205,9 @@ class PayPal
 	 *  would be "ssl://www.sandbox.paypal.com:443/cgi-bin/webscr"
 	 *
 	 * @return string
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
 	 */
 	public function getPostUri()
 	{
@@ -207,6 +221,9 @@ class PayPal
 	 *  HTTP headers.
 	 *
 	 * @return string
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
 	 */
 	public function getResponse()
 	{
@@ -220,10 +237,144 @@ class PayPal
 	 *  if the post back was successful.
 	 *
 	 * @return string
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
 	 */
 	public function getResponseStatus()
 	{
 		return $this->response_status;
+	}
+
+	/**
+	 *  Process IPN
+	 *
+	 *  Handles the IPN post back to PayPal and parsing the response. Call this
+	 *  method from your IPN listener script. Returns true if the response came
+	 *  back as "VERIFIED", false if the response came back "INVALID", and
+	 *  throws an exception if there is an error.
+	 *
+	 * @param array
+	 *
+	 * @return boolean
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
+	 */
+	public function checkIncomingIpnRequest($post_data = null)
+	{
+		try
+		{
+			$this->requirePostMethod();
+
+			if ($post_data === null)
+			{
+				$raw_post_data = file_get_contents('php://input');
+			}
+			else
+			{
+				$raw_post_data = $post_data;
+			}
+
+			$this->rawPostData = $raw_post_data;
+
+			if ( ! is_array($raw_post_data))
+			{
+				$raw_post_array  = explode('&', $raw_post_data);
+				$this->post_data = $raw_post_array;
+			}
+			else
+			{
+				$this->post_data = $raw_post_data;
+			}
+			$myPost = [];
+
+			if (isset($raw_post_array))
+			{
+				foreach ($raw_post_array as $keyval)
+				{
+					$keyval = explode('=', $keyval);
+					if (count($keyval) == 2)
+					{
+						$myPost[$keyval[0]] = urldecode($keyval[1]);
+					}
+				}
+			}
+
+			$req = 'cmd=_notify-validate';
+
+			$this->message = $myPost;
+
+			foreach ($myPost as $key => $value)
+			{
+				if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc() == 1)
+				{
+					$value = urlencode(stripslashes($value));
+				}
+				else
+				{
+					$value = urlencode($value);
+				}
+
+				$req .= "&$key=$value";
+			}
+
+			if ($this->use_curl)
+			{
+				$res = $this->curlPost($req);
+			}
+			else
+			{
+				$res = $this->fsockPost($req);
+			}
+
+			if (strpos($res, '200') === false)
+			{
+				throw new \Exception("Invalid response status: " . $res);
+			}
+
+			$tokens = explode("\r\n\r\n", trim($res));
+			$res    = trim(end($tokens));
+
+			if (strcmp($res, "VERIFIED") == 0)
+			{
+				Log::message('paypalexpress_ipn', 'VERIFIED');
+				return true;
+			}
+			else if (strcmp($res, "INVALID") == 0)
+			{
+				return false;
+			}
+			else
+			{
+				throw new \Exception("Unexpected response from PayPal.");
+			}
+		}
+		catch (\Exception $e)
+		{
+			$this->addError($e->getMessage());
+
+			return false;
+		}
+	}
+
+	/**
+	 *  Require Post Method
+	 *
+	 *  Throws an exception and sets a HTTP 405 response header if the request
+	 *  method was not POST.
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
+	 */
+	public function requirePostMethod()
+	{
+		// require POST requests
+		if ($_SERVER['REQUEST_METHOD'] && $_SERVER['REQUEST_METHOD'] != 'POST')
+		{
+			header('Allow: POST', true, 405);
+			throw new \Exception("Invalid HTTP request method (" . $_SERVER['REQUEST_METHOD'] . ") from " . $_SERVER['REMOTE_ADDR'] . " - " . $_SERVER['HTTP_USER_AGENT'] . ")");
+		}
 	}
 
 	/**
@@ -234,6 +385,9 @@ class PayPal
 	 *  this method in your own class to customize the report.
 	 *
 	 * @return string
+	 *
+	 * @version [VERSION]
+	 * @since   1.0.0
 	 */
 	public function getTextReport()
 	{
@@ -282,132 +436,5 @@ class PayPal
 		$r .= "\n\n";
 
 		return $r;
-	}
-
-	/**
-	 *  Process IPN
-	 *
-	 *  Handles the IPN post back to PayPal and parsing the response. Call this
-	 *  method from your IPN listener script. Returns true if the response came
-	 *  back as "VERIFIED", false if the response came back "INVALID", and
-	 *  throws an exception if there is an error.
-	 *
-	 * @param array
-	 *
-	 * @return boolean
-	 */
-	public function processIpn($post_data = null)
-	{
-		try
-		{
-			$this->requirePostMethod();        // processIpn() should check itself if data is POST
-
-			// Read POST data
-			// reading posted data directly from $_POST causes serialization
-			// issues with array data in POST. Reading raw POST data from input stream instead.
-			if ($post_data === null)
-			{
-				$raw_post_data = file_get_contents('php://input');
-			}
-			else
-			{
-				$raw_post_data = $post_data;
-			}
-			$this->rawPostData = $raw_post_data;                            // set raw post data for Class use
-
-			// if post_data is php input stream, make it an array.
-			if ( ! is_array($raw_post_data))
-			{
-				$raw_post_array  = explode('&', $raw_post_data);
-				$this->post_data = $raw_post_array;                                // use post array because it's same as $_POST
-			}
-			else
-			{
-				$this->post_data = $raw_post_data;                                // use post array because it's same as $_POST
-			}
-
-			$myPost = [];
-			if (isset($raw_post_array))
-			{
-				foreach ($raw_post_array as $keyval)
-				{
-					$keyval = explode('=', $keyval);
-					if (count($keyval) == 2)
-					{
-						$myPost[$keyval[0]] = urldecode($keyval[1]);
-					}
-				}
-			}
-
-			// read the post from PayPal system and add 'cmd'
-			$req = 'cmd=_notify-validate';
-
-			foreach ($myPost as $key => $value)
-			{
-				if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc() == 1)
-				{
-					$value = urlencode(stripslashes($value));
-				}
-				else
-				{
-					$value = urlencode($value);
-				}
-				$req .= "&$key=$value";
-			}
-
-			if ($this->use_curl)
-			{
-				$res = $this->curlPost($req);
-			}
-			else
-			{
-				$res = $this->fsockPost($req);
-			}
-
-			if (strpos($res, '200') === false)
-			{
-				throw new Exception("Invalid response status: " . $res);
-			}
-
-			// Split response headers and payload, a better way for strcmp
-			$tokens = explode("\r\n\r\n", trim($res));
-			$res    = trim(end($tokens));
-			if (strcmp($res, "VERIFIED") == 0)
-			{
-				return true;
-			}
-			else if (strcmp($res, "INVALID") == 0)
-			{
-				return false;
-			}
-			else
-			{
-				throw new Exception("Unexpected response from PayPal.");
-			}
-		}
-		catch (Exception $e)
-		{
-			$this->addError($e->getMessage());
-
-			return false;
-		}
-
-		return false;
-	}
-
-	/**
-	 *  Require Post Method
-	 *
-	 *  Throws an exception and sets a HTTP 405 response header if the request
-	 *  method was not POST.
-	 */
-	public function requirePostMethod()
-	{
-		// require POST requests
-		if ($_SERVER['REQUEST_METHOD'] && $_SERVER['REQUEST_METHOD'] != 'POST')
-		{
-			header('Allow: POST', true, 405);
-			throw new Exception("Invalid HTTP request method (" . $_SERVER['REQUEST_METHOD'] . ") from " . $_SERVER['REMOTE_ADDR'] . " - " . $_SERVER['HTTP_USER_AGENT'] . ")");
-		}
 	}
 }

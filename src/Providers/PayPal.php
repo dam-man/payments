@@ -132,6 +132,7 @@ class PayPal extends Payment implements PaymentInterface
 
 		return [
 			'invoice_id'          => $this->orderid,
+			'custom'              => $this->orderid,
 			'invoice_description' => $this->description,
 			'return_url'          => $this->redirectUrl,
 			'cancel_url'          => $this->redirectUrl . '&state=cancelled',
@@ -248,31 +249,29 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @since [VERSION]
 	 */
-	public function ipn($response = [], $sandbox = true)
+	public function ipn()
 	{
-		Log::message('PayPalExpress', 'New IPN request received.');
-
 		$listener = new IpnListener;
 
-		$listener->use_sandbox     = $sandbox;
+		$listener->use_sandbox     = $this->sandbox;
 		$listener->use_curl        = true;
 		$listener->follow_location = false;
 		$listener->timeout         = 30;
 		$listener->verify_ssl      = false;
 
-		if ($verified = $listener->processIpn())
+		// Checking the request which is incoming
+		if ( ! $listener->checkIncomingIpnRequest())
 		{
-			Log::message('PayPalExpress', 'IPN Verified');
-			Log::message('PayPalExpress', $listener->getRawPostData());
-
-			$this->response = $listener->getRawPostData();
-
-			return true;
+			return false;
 		}
 
-		Log::message('PayPalExpress', 'IPN Not Verified');
+		// Setting the response
+		$this->response = $listener->getIpnMessage();
 
-		return false;
+		// Log the response
+		Log::message('PayPalExpress', $this->response);
+
+		return true;
 	}
 
 	/**
@@ -284,17 +283,15 @@ class PayPal extends Payment implements PaymentInterface
 	 *
 	 * @since [VERSION]
 	 */
-	public function refund($transaction, $amount = null)
+	public function refund($transaction, $amount = 0)
 	{
 		if ($amount)
 		{
 			$amount = number_format($amount, 2, '.', '');
 		}
 
-		// Instantiate the PayPal Express Checkout
 		$paypalexpress = new ExpressCheckout;
 
-		// Sending the credentals and settings
 		$paypalexpress->setApiCredentials($this->getCredentials());
 		$paypalexpress->setCurrency($this->currency);
 
@@ -311,6 +308,8 @@ class PayPal extends Payment implements PaymentInterface
 			return true;
 		}
 
+		$this->payment_state = true;
+
 		$this->payment_message = \JText::sprintf('PLG_RDMEDIA_PAYPAL_REFUNDED', $transaction, $response['REFUNDTRANSACTIONID']);
 
 		return true;
@@ -319,7 +318,7 @@ class PayPal extends Payment implements PaymentInterface
 	/**
 	 * Returns the response of the payment.
 	 *
-	 * @return string
+	 * @return array
 	 * @since [VERSION]
 	 */
 	public function getPaymentProviderResponse()
